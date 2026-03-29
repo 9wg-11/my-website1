@@ -1,23 +1,37 @@
-import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { defineConfig, loadEnv } from "vite";
-import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
-
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime()];
 
 export default defineConfig(({ mode }) => {
   const repoRoot = path.resolve(import.meta.dirname);
   const clientDir = path.join(repoRoot, "client");
   const envRoot = loadEnv(mode, repoRoot, "");
   const envClient = loadEnv(mode, clientDir, "");
+  const plugins = [react(), tailwindcss()];
   const emailJs = (key: string) =>
     (envClient[key] ?? envRoot[key] ?? "").trim();
   const contactEmail =
     emailJs("VITE_CONTACT_EMAIL") || "Bassamas101@gmail.com";
 
-  return {
+  return (async () => {
+    try {
+      const { jsxLocPlugin } = await import("@builder.io/vite-plugin-jsx-loc");
+      plugins.push(jsxLocPlugin());
+    } catch {
+      // Optional in deployment environments like Netlify.
+    }
+
+    try {
+      const { vitePluginManusRuntime } = await import(
+        "vite-plugin-manus-runtime"
+      );
+      plugins.push(vitePluginManusRuntime());
+    } catch {
+      // Optional in deployment environments like Netlify.
+    }
+
+    return {
     plugins,
     resolve: {
       alias: {
@@ -62,5 +76,6 @@ export default defineConfig(({ mode }) => {
         deny: ["**/.*"],
       },
     },
-  };
+    };
+  })();
 });
